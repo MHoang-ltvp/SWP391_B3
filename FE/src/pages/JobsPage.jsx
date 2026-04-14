@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { jobService } from "@/services/jobService.js";
+import { jobService } from "@/services/jobService";
 
-export default function Jobs() {
+export default function JobsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [keyword, setKeyword] = useState("");
@@ -11,18 +11,25 @@ export default function Jobs() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+
+    async function fetchJobs() {
       setLoading(true);
       setError("");
       try {
-        const res = await jobService.search({ page, limit: 10, keyword: keyword || undefined });
-        if (!cancelled) setData(res);
-      } catch (e) {
-        if (!cancelled) setError(e.message || "Không tải được danh sách");
+        const result = await jobService.list({
+          page,
+          limit: 10,
+          keyword: keyword || undefined,
+        });
+        if (!cancelled) setData(result);
+      } catch (err) {
+        if (!cancelled) setError(err.message || "Không tải được danh sách");
       } finally {
         if (!cancelled) setLoading(false);
       }
-    })();
+    }
+
+    fetchJobs();
     return () => {
       cancelled = true;
     };
@@ -32,22 +39,23 @@ export default function Jobs() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Việc làm</h1>
-        <p className="text-sm text-slate-500 mt-1">Dữ liệu mẫu từ API prototype BE.</p>
+        <p className="text-sm text-slate-500 mt-1">Dữ liệu được lấy từ API backend theo kiến trúc mới.</p>
       </div>
-      <div className="flex flex-wrap gap-2 items-center">
-        <input
-          type="search"
-          placeholder="Từ khóa (title, tên công ty)..."
-          value={keyword}
-          onChange={(e) => {
-            setKeyword(e.target.value);
-            setPage(1);
-          }}
-          className="flex-1 min-w-[200px] rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        />
-      </div>
+
+      <input
+        type="search"
+        placeholder="Từ khóa (title, tên công ty)..."
+        value={keyword}
+        onChange={(e) => {
+          setKeyword(e.target.value);
+          setPage(1);
+        }}
+        className="w-full max-w-xl rounded-lg border border-slate-300 px-3 py-2 text-sm"
+      />
+
       {loading && <p className="text-slate-500">Đang tải…</p>}
       {error && <p className="text-red-600 text-sm">{error}</p>}
+
       {!loading && !error && (
         <ul className="space-y-3">
           {data.items.map((job) => (
@@ -61,17 +69,12 @@ export default function Jobs() {
                   {job.company?.companyName}
                   {job.address?.city ? ` · ${job.address.city}` : ""}
                 </div>
-                {job.salaryMin != null && (
-                  <div className="text-sm text-indigo-600 mt-2">
-                    {job.salaryMin.toLocaleString("vi-VN")} –{" "}
-                    {job.salaryMax?.toLocaleString("vi-VN")} đ/tháng
-                  </div>
-                )}
               </Link>
             </li>
           ))}
         </ul>
       )}
+
       {data.totalPages > 1 && (
         <div className="flex gap-2 justify-center pt-4">
           <button
